@@ -1,0 +1,43 @@
+version: '3.5'
+services:
+  db:
+    image: 'postgres:alpine'
+    container_name: 'postgres-db'
+    env_file: ./.env
+    environment: 
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data/
+    networks:
+      - app-network
+  simplest-server:
+    container_name: simplest-server
+    build:
+      dockerfile: Dockerfile
+      context: ./simplest-nodejs
+    env_file: ./.env
+    environment:
+      POSTGRES_HOST: db
+    ports:
+      - "3001:3001"
+    networks:
+      - app-network
+  database-service:
+    container_name: database-service
+    build:
+      dockerfile: Dockerfile
+      context: ./database-service
+    env_file: ./.env
+    environment:
+      POSTGRES_HOST: db
+    networks:
+      - app-network
+networks:
+  app-network:
+    driver: bridge
+volumes:
+  dbdata:
