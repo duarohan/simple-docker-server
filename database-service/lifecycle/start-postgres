@@ -1,0 +1,87 @@
+#!/bin/bash
+
+readonly CONFIG_FILES=('postgresql.conf' 'pg_hba.conf')
+readonly DEPLOYED_CONFIG_DIR='/etc/postgresql/10/main'
+
+service_action='start'
+
+# Sets ownership and permission for a file.  Exits if error occurs.  Ownership is set to 
+# postgres:postgres, permissions are a parameter.
+# Globals:
+#   None
+# Arguments:
+#   $1: File to change ownership and permission for
+#   $2: Permissions to set
+function setOwnershipAndPermission {
+  sudo chown postgres:postgres $1
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: failed to set ownership of file $1"
+    exit 1
+  fi
+
+  sudo chmod $2 $1
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: failed to set permission of file $1"
+    exit 1
+  fi
+}
+
+sp_environment=$1
+if [[ -z "${sp_environment}" ]]; then
+  sp_environment='local'
+fi
+echo "Environment: ${sp_environment}"
+
+# If there is a config change, put it in place
+config_updated=false
+for config_file in ${CONFIG_FILES[@]}; do
+  sudo diff -q ${DEPLOYED_CONFIG_DIR}/${config_file} ./config/${sp_environment}/${config_file}
+  config_check="$?"
+  if [[ "${config_check}" == "2" ]]; then
+    echo "ERROR: could not compare config files (${config_file})."
+    exit ${config_check}
+  elif [[ "${config_check}" == "1" ]]; then
+    echo "Deploying new database config"
+    sudo cp ./config/${sp_environment}/${config_file} ${DEPLOYED_CONFIG_DIR}
+    if [[ "$?" != "0" ]]; then
+      echo "ERROR: Failed to place config file ${config_file} in place at ${DEPLOYED_CONFIG_DIR}"
+      exit 1
+    fi
+
+    config_updated=true
+  else
+    echo "Config file ${config_file} up to date"
+  fi
+done
+
+db_running=false
+postgresql_check=$(pgrep -f postgresql)
+if [[ ! -z "${postgresql_check}" ]]; then
+  db_running=true
+fi
+
+# If db running and config not changed (already up to date), nothing to do - go ahead and exit
+if [[ "${db_running}" == "true" && "${config_updated}" == "false" ]]; then
+  echo "Config up to date and postgresql already running (${postgresql_check})"
+  exit
+fi
+
+# If db running and config was changed, attempted action should be restart
+if [[ "${db_running}" == "true" && "${config_updated}" == "true" ]]; then
+  echo "Config changed and postgresql already running (${postgresql_check}) - will attempt restart"
+  service_action='restart'
+fi
+
+# If db not running, no matter if config was changed or not, start of db must be attempted.  
+# Assume default service_action set above (start).
+
+# Set ownership and permissions of files
+setOwnershipAndPermission ${DEPLOYED_CONFIG_DIR}/postgresql.conf 644
+setOwnershipAndPermission ${DEPLOYED_CONFIG_DIR}/pg_hba.conf 640
+
+echo "Performing postgresql ${service_action}"
+sudo service postgresql ${service_action}
+# Service postgresql start above observed to be inaccurate in some cases.
+# Check and make sure that we have actually started the database.
+./lifecycle/smoke-test
+exit $?

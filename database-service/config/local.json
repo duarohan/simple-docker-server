@@ -1,0 +1,19 @@
+{
+  "database": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "cloud_services_app",
+    "host": "db",
+    "dialect": "postgres",
+    "logging": false
+  },
+  "eventDatabase": {
+    "hosts": ["127.0.0.1"]
+  },
+  "dynamoDb": {
+    "region": "local",
+    "scheme": "http",
+    "host": "127.0.0.1",
+    "port": "8000"
+  }
+}

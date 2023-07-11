@@ -1,0 +1,19 @@
+# Logs
+logs
+*.log
+
+# Dependency directory
+# https://docs.npmjs.com/cli/shrinkwrap#caveats
+node_modules
+
+# npm related files
+npm-debug.log
+
+# Platform specific files
+*.DS_Store
+
+# Build related files - if lifecycle build script run locally
+database-service.tgz
+
+# IDE related files
+.vscode

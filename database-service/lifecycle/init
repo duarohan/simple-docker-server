@@ -1,0 +1,56 @@
+#!/bin/bash
+# Setup for database-service
+
+echo "Starting initialization for postgres"
+
+# Postgresql
+pg_check=$(command -v psql)
+if [[ -z "${pg_check}" ]]; then
+  echo "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" | sudo tee -a /etc/apt/sources.list.d/pgdg.list
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to update apt source list."
+    exit 1
+  fi
+
+  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to update apt key list."
+    exit 1
+  fi
+
+  sudo apt-get update
+  yes | sudo apt-get install postgresql-client-10
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to install required package postgresql-client-10."
+    exit 2
+  fi
+else
+  echo "Postgres is availabile: ${pg_check}"
+fi
+
+
+echo "Starting initialization check for nodejs"
+
+# Node js is required
+node_check=$(command -v node)
+if [[ -z "${node_check}" || !($(node --version) == v10*) ]]; then
+  echo "Intalling node v10"
+
+  # Fetch official setup script
+  curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to get setup script for required package node js."
+    exit 1
+  fi
+
+  # Go get and install packages
+  sudo apt-get install -y nodejs
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to install required package node js."
+    exit 2
+  fi
+else
+  echo "Node v10 already installed"
+fi
+
+echo "Completed initialzation"

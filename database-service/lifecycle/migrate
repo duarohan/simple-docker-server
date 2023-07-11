@@ -1,0 +1,4 @@
+#!/bin/bash
+
+./node_modules/.bin/sequelize --debug --env database --config ./config/${ENV}.json db:migrate
+exit $?

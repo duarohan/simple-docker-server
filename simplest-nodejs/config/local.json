@@ -1,0 +1,10 @@
+{
+    "database": {
+      "username": "postgres",
+      "password": "postgres",
+      "database": "cloud_services_app",
+      "host": "db",
+      "dialect": "postgres",
+      "logging": false
+    }
+}

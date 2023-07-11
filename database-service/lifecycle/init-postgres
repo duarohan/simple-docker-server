@@ -1,0 +1,43 @@
+#!/bin/bash
+
+echo "Starting initialization"
+
+# Postgresql
+pg_check=$(command -v psql)
+if [[ -z "${pg_check}" ]]; then
+  echo "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" | sudo tee -a /etc/apt/sources.list.d/pgdg.list
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to update apt source list."
+    exit 1
+  fi
+
+  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to update apt key list."
+    exit 1
+  fi
+
+  sudo apt-get update
+  yes | sudo apt-get install postgresql-10 postgresql-contrib-10
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to install required package postgresql."
+    exit 2
+  fi
+
+  # Initialize db, db user for services to use.
+  sudo -u postgres createuser cloud_services_app
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to create database user."
+    exit 3
+  fi
+
+  sudo -u postgres createdb cloud_services
+  if [[ "$?" != "0" ]]; then
+    echo "ERROR: Failed to create database."
+    exit 3
+  fi
+else
+  echo "Postgres is availabile: ${pg_check}"
+fi
+
+echo "Completed initialzation"
